@@ -44,7 +44,7 @@
           (forward-char 1)
           (parse-partial-sexp (point) indent-point 1 t)
           ;; Move to the car of the relevant containing form
-          (let (tem function method)
+          (let (tem function method keywordp)
             (if (not (looking-at "\\sw\\|\\s_"))
                 ;; This form doesn't seem to start with a symbol
                 (setq function nil method nil)
@@ -56,6 +56,7 @@
                     method (get tem 'common-lisp-indent-function))
               (cond ((and (null method)
                           (string-match ":[^:]+" function))
+                     (setq keywordp t)
                      ;; The pleblisp package feature
                      (setq function (substring function
                                                (1+ (match-beginning 0)))
@@ -94,7 +95,9 @@
                   ((eq method 'defun)
                    (setq method '(4 (&whole 4 &rest 1) &body))))
 
-            (cond ((and (eql (char-after (1- containing-sexp)) ?\') ; patched to only do this for ' and not `.  
+            (cond (keywordp
+                   (setq calculated (1+ sexp-column)))
+                  ((and (eql (char-after (1- containing-sexp)) ?\') ; patched to only do this for ' and not `.  
                         (not (eql (char-after (- containing-sexp 2)) ?\#)))
                    ;; No indentation for "'(...)" elements
                    (setq calculated (1+ sexp-column)))
