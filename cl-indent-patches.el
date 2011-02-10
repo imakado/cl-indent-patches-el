@@ -18,6 +18,21 @@
 
 (setq lisp-indent-function 'common-lisp-indent-function)
 
+(defvar cl-indent-keywords-patch-ignore-regexps
+    '(
+      "(defpackage"
+      ))
+
+(defun cl-indent-keywords-should-do-p (regexps)
+  (let* ((regexps
+          (if (listp regexps) regexps (list regexps)))
+         (cur-point (point)))
+    (save-excursion
+      (ignore-errors (while t (backward-up-list)))
+      (some (lambda (re)
+              (re-search-forward re cur-point t))
+            regexps))))
+
 (defun common-lisp-indent-function (indent-point state)
   (let ((normal-indent (current-column)))
     ;; Walk up list levels until we see something
@@ -95,7 +110,9 @@
                   ((eq method 'defun)
                    (setq method '(4 (&whole 4 &rest 1) &body))))
 
-            (cond (keywordp
+            (cond ((and keywordp
+                        (not (cl-indent-keywords-should-do-p
+                              cl-indent-keywords-patch-ignore-regexps)))
                    (setq calculated (1+ sexp-column)))
                   ((and (eql (char-after (1- containing-sexp)) ?\') ; patched to only do this for ' and not `.  
                         (not (eql (char-after (- containing-sexp 2)) ?\#)))
